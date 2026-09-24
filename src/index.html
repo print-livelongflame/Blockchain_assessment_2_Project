@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Decision Voting Application</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Community Decision Voting Application</h1>
+            <p>Ethereum voting platform using MetaMask and Web3.js</p>
+        </header>
+
+        <!--
+    Wallet section: This section displays the connected MetaMask account, blockchain network, ETH balance, user role, voting status and the current topic.
+        -->
+        <section class="card">
+            <h2>Wallet & Session</h2>
+            <button id="connectButton">Connect MetaMask</button>
+            <div class="info-grid">
+                <div><strong>Wallet:</strong> <span id="walletAddress">Not connected</span></div>
+                <div><strong>Network:</strong> <span id="networkInfo">-</span></div>
+                <div><strong>Balance:</strong> <span id="walletBalance">-</span></div>
+                <div><strong>Role:</strong> <span id="userRole">-</span></div>
+                <div><strong>Status:</strong> <span id="votingStatus">-</span></div>
+                <div><strong>Topic:</strong> <span id="topicDisplay">-</span></div>
+            </div>
+            <div id="globalMessage" class="message"></div>
+        </section>
+
+        <section class="card">
+            <h2>Voting Information</h2>
+            <div id="optionsDisplay" class="options-list">No voting round prepared.</div>
+            <p><strong>Your eligibility:</strong> <span id="eligibilityStatus">-</span></p>
+            <p><strong>Have you voted?</strong> <span id="hasVotedStatus">-</span></p>
+            <button id="viewVoteButton">View My Vote</button>
+            <span id="viewVoteWarning" class="warning"></span>
+            <div id="myVoteResult" class="result-box"></div>
+        </section>
+
+        <section class="card">
+            <h2>Cast Vote</h2>
+            <div id="voteOptions" class="options-list">Connect your wallet to vote.</div>
+            <button id="voteButton">Submit Vote</button>
+            <span id="voteWarning" class="warning"></span>
+            <div id="voteMessage" class="message"></div>
+        </section>
+
+        <section class="card admin-section">
+            <h2>Admin Controls</h2>
+            <p class="small">Admin actions remain visible for testing. The smart contract enforces access control.</p>
+
+            <h3>Prepare Voting Round</h3>
+            <label for="topicInput">Voting topic</label>
+            <input id="topicInput" type="text" placeholder="e.g. Choose the event location">
+
+            <label for="optionsInput">Options (one per line)</label>
+            <textarea id="optionsInput" rows="5" placeholder="Option A\nOption B\nOption C"></textarea>
+            <button id="prepareButton">Prepare Voting Round</button>
+            <span id="prepareWarning" class="warning"></span>
+
+            <h3>Eligibility Management</h3>
+            <input id="eligibilityAddress" type="text" placeholder="Participant wallet address">
+            <div class="button-row">
+                <button id="excludeButton">Exclude Participant</button>
+                <button id="reinstateButton">Reinstate Participant</button>
+                <button id="excludedListButton">View Excluded List</button>
+            </div>
+            <span id="eligibilityWarning" class="warning"></span>
+            <div id="excludedListResult" class="result-box"></div>
+
+            <h3>Participant Status (Admin)</h3>
+            <input id="statusAddress" type="text" placeholder="Participant wallet address">
+            <button id="participantStatusButton">Check Participant Vote Status</button>
+            <span id="participantStatusWarning" class="warning"></span>
+            <div id="participantStatusResult" class="result-box"></div>
+
+            <h3>End / Reveal / Reset</h3>
+            <div class="button-row">
+                <button id="endButton">End Voting</button>
+                <button id="revealButton">Reveal Results</button>
+                <button id="resetButton">Reset Voting Round</button>
+            </div>
+            <span id="lifecycleWarning" class="warning"></span>
+        </section>
+
+        <section class="card">
+            <h2>Results</h2>
+            <p id="resultsAvailability">Results are not available yet.</p>
+            <button id="loadResultsButton">Load Results</button>
+            <span id="resultsWarning" class="warning"></span>
+            <div id="resultsDisplay" class="result-box"></div>
+        </section>
+
+        <footer>
+            <p><strong>INTE2628/2679 Developing Blockchain Applications – Assignment 2</strong></p>
+            <p>Team Name: Group 32</p>
+            <p>Team Members: Valentino Osorio Schwarz &amp; Byreddy Srilekha</p>
+        </footer>
+    </main>
+
+    <!-- The provided Web3.js library is used; no external libraries, code generators, templates or framework are used. -->
+    <script src="web3.min.js"></script>
+    <script src="application.js"></script>
+</body>
+</html>

@@ -174,17 +174,23 @@ onlyAdmin
 }
 
 
-    function reinstateVoter(address voter)
-    public
-    onlyAdmin
-    {
-        require(
-            excludedVoters[voter],
-            "Voter is not excluded"
-        );
+
+    function reinstateVoter(address voter) public onlyAdmin {
+        require(votingActive, "Voting not active");
+        require(excludedVoters[voter], "Voter is not excluded");
 
         excludedVoters[voter] = false;
+
+        // Remove the address from the current excluded-participant list.
+        for (uint256 i = 0; i < excludedList.length; i++) {
+            if (excludedList[i] == voter) {
+                excludedList[i] = excludedList[excludedList.length - 1];
+                excludedList.pop();
+                break;
+            }
+        }
     }
+
 
     function isExcluded(address voter)
     public
@@ -325,6 +331,16 @@ onlyAdmin
             "Voting still active"
         );
 
+        require(
+        options.length > 0,
+        "No voting round exists"
+        );
+
+        require(
+        !resultsRevealed,
+        "Results already revealed"
+        );
+
         resultsRevealed = true;
     }
 
@@ -409,6 +425,19 @@ onlyAdmin
 
         delete options;
         delete winners;
+        
+        // Clear all recorded voter participation and personal vote choices.
+        for (uint256 i = 0; i < votedAddresses.length; i++) {
+            delete hasVoted[votedAddresses[i]];
+            delete userVotes[votedAddresses[i]];
+        }
+        delete votedAddresses;
+
+        // Clear all current-round exclusion list.
+        for (uint256 i = 0; i < excludedList.length; i++) {
+            delete excludedVoters[excludedList[i]];
+        }
+        delete excludedList;
 
         votingTopic = "";
 
