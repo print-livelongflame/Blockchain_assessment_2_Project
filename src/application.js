@@ -92,13 +92,16 @@ async function refreshWallet() {
 async function refreshContractState() {
     if (!contract || !currentAccount) return;
 
-    const [admin, status, topic, options, excluded, voted] = await Promise.all([
-        contract.methods.admin().call(),
-        contract.methods.getVotingStatus().call(),
-        contract.methods.votingTopic().call(),
-        contract.methods.getOptionList().call(),
-        contract.methods.isExcluded(currentAccount).call(),
-        contract.methods.hasUserVoted().call()
+    const [admin, status, topic, options, excluded, voted, resultsRevealed] = await Promise.all([
+    contract.methods.admin().call(),
+    contract.methods.getVotingStatus().call(),
+    contract.methods.votingTopic().call(),
+    contract.methods.getOptionList().call(),
+    contract.methods.isExcluded(currentAccount).call(),
+    contract.methods.hasUserVoted().call({
+        from: currentAccount
+    }),
+    contract.methods.resultsRevealed().call()
     ]);
 
     currentOptions = Array.from(options);
@@ -111,6 +114,15 @@ async function refreshContractState() {
         ? "Admin (not eligible to vote)"
         : (excluded ? "Excluded" : "Eligible unless already voted");
     $("hasVotedStatus").textContent = String(voted);
+    
+    if (resultsRevealed) {
+    $("resultsAvailability").textContent = "Results have been revealed.";
+    $("resultsWarning").textContent = "";
+} else {
+    $("resultsAvailability").textContent = "Results are not available yet.";
+    $("resultsWarning").textContent =
+        "Results can only be loaded after the Admin reveals them.";
+}
 
     renderOptions();
     renderWarnings(isAdmin, status, excluded, voted);
@@ -198,35 +210,113 @@ async function prepareRound() {
 // Submits the participant's selected option to the smart contract.
 // The smart contract checks whether the participant is eligible to vote, has already voted, and whether the option selected is valid.
 async function castVote() {
-    if (!contract) return setMessage("globalMessage", "Connect MetaMask first.");
+    if (!contract) {
+        return setMessage("globalMessage", "Connect MetaMask first.");
+    }
+
     const selected = document.querySelector('input[name="voteOption"]:checked');
+
     if (!selected) {
         setMessage("voteMessage", "Select an option first.");
         return;
     }
-    await sendTransaction(
-        contract.methods.vote(Number(selected.value)),
-        "Vote submitted."
-    );
+
+    try {
+        const excluded = await contract.methods
+            .isExcluded(currentAccount)
+            .call();
+
+        const alreadyVoted = await contract.methods
+            .hasUserVoted()
+            .call({
+                from: currentAccount
+            });
+
+        if (excluded) {
+            setMessage(
+                "voteMessage",
+                "You are excluded from this voting round."
+            );
+            $("voteWarning").textContent =
+                "This participant is excluded from the current round.";
+            return;
+        }
+
+        if (alreadyVoted) {
+            setMessage(
+                "voteMessage",
+                "You have already voted in this round."
+            );
+            $("voteWarning").textContent =
+                "This participant has already voted.";
+            return;
+        }
+
+        await sendTransaction(
+            contract.methods.vote(Number(selected.value)),
+            "Vote submitted."
+        );
+
+    } catch (error) {
+        showError(error);
+    }
 }
 
 async function excludeParticipant() {
     const address = $("eligibilityAddress").value.trim();
-    await sendTransaction(contract.methods.excludeVoter(address), "Participant excluded.");
+
+    if (!address) {
+        setMessage("eligibilityMessage", "Enter a participant wallet address.");
+        return;
+    }
+
+    const receipt = await sendTransaction(
+        contract.methods.excludeVoter(address),
+        "Participant excluded."
+    );
+
+    if (receipt) {
+        setMessage("eligibilityMessage", "Participant excluded successfully.");
+        await loadExcludedList();
+    }
 }
 
 async function reinstateParticipant() {
     const address = $("eligibilityAddress").value.trim();
-    await sendTransaction(contract.methods.reinstateVoter(address), "Participant reinstated.");
+
+    if (!address) {
+        setMessage("eligibilityMessage", "Enter a participant wallet address.");
+        return;
+    }
+
+    const receipt = await sendTransaction(
+        contract.methods.reinstateVoter(address),
+        "Participant reinstated."
+    );
+
+    if (receipt) {
+        setMessage("eligibilityMessage", "Participant reinstated successfully.");
+        await loadExcludedList();
+    }
 }
 
 async function loadExcludedList() {
     try {
-        const addresses = await contract.methods.getExcludedVoters().call();
+        if (!contract || !currentAccount) {
+            setMessage("globalMessage", "Connect the Admin wallet first.");
+            return;
+        }
+
+        const addresses = await contract.methods
+            .getExcludedVoters()
+            .call({ from: currentAccount });
+
         $("excludedListResult").textContent = addresses.length
             ? addresses.join("\n")
             : "No participants are currently excluded.";
-    } catch (error) { showError(error); }
+    } catch (error) {
+        showError(error);
+    }
 }
 
 async function checkParticipantStatus() {
@@ -251,9 +341,20 @@ async function resetRound() {
 
 async function viewMyVote() {
     try {
-        const result = await contract.methods.viewMyVote().call();
+        if (!contract || !currentAccount) {
+            setMessage("myVoteResult", "Connect your wallet first.");
+            return;
+        }
+
+        const result = await contract.methods.viewMyVote().call({
+            from: currentAccount
+        });
+
         $("myVoteResult").textContent = `Your vote: ${result}`;
-    } catch (error) { showError(error); }
+    } catch (error) {
+        $("myVoteResult").textContent = "Your vote could not be loaded.";
+        showError(error);
+    }
 }
 
 // Loads the final results.
